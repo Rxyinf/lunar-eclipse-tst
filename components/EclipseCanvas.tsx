@@ -1,95 +1,108 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls, Stars } from "@react-three/drei";
+import { Stars } from "@react-three/drei";
 import * as THREE from "three";
-import { GAMMA, penumbraIntensity, shadowAxis, umbralMagnitudeAt } from "@/lib/eclipse";
+import { GAMMA, shadowAxis, umbralMagnitudeAt, penumbraIntensity } from "@/lib/eclipse";
 
-const VERT = "varying vec3 vN;\nvarying vec3 vObj;\nvoid main() {\n  vN = normalMatrix * normal;\n  vObj = position;\n  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);\n}";
-const FRAG = "uniform float uMagnitude;\nuniform float uPenumbra;\nuniform vec3 uLightDir;\nvarying vec3 vN;\nvarying vec3 vObj;\nfloat hash(vec3 p) {\n  return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453);\n}\nvoid main() {\n  vec3 nrm = normalize(vN);\n  vec3 L = normalize(uLightDir);\n  float ndl = max(dot(nrm, L), 0.0);\n  float maria = smoothstep(0.35, 0.75, hash(floor(vObj * 7.0)));\n  vec3 rock = mix(vec3(0.90, 0.86, 0.78), vec3(0.55, 0.52, 0.48), maria);\n  vec3 lit = rock * (0.28 + 0.72 * ndl);\n  lit *= mix(1.0, 0.58, clamp(uPenumbra, 0.0, 1.0));\n  lit = mix(lit, lit * vec3(1.08, 0.88, 0.70), uPenumbra * 0.45);\n  float edge = -1.0 + 2.0 * uMagnitude;\n  float inU = 1.0 - smoothstep(edge - 0.06, edge + 0.05, vObj.y);\n  vec3 copper = vec3(0.62, 0.18, 0.06) * (0.25 + 0.55 * ndl);\n  copper += vec3(0.08, 0.02, 0.01);\n  vec3 col = mix(lit, copper, inU * step(0.002, uMagnitude));\n  gl_FragColor = vec4(col, 1.0);\n}";
+type Props = { time: number };
 
-type Props = { time: number; live: boolean; reduced: boolean };
-
-function Moon({ time, live, reduced }: Props) {
-  const mesh = useRef<THREE.Mesh>(null);
-  const mat = useRef<THREE.ShaderMaterial>(null);
-  const uniforms = useMemo(
-    () => ({
-      uMagnitude: { value: 0 },
-      uPenumbra: { value: 0 },
-      uLightDir: { value: new THREE.Vector3(1, 0.15, 0.05) },
-    }),
-    [],
-  );
-
-  useFrame((_, dt) => {
-    const t = live && !reduced ? Date.now() : time;
-    const axis = shadowAxis(t);
-    const mag = umbralMagnitudeAt(t);
-    const pen = penumbraIntensity(t);
-    if (mesh.current) {
-      mesh.current.position.set(4.15, GAMMA * 1.35, axis * 3.4);
-      mesh.current.rotation.y += reduced ? dt * 0.04 : dt * 0.12;
-    }
-    if (mat.current) {
-      mat.current.uniforms.uMagnitude.value = mag;
-      mat.current.uniforms.uPenumbra.value = pen;
-    }
-  });
-
-  return (
-    <mesh ref={mesh} position={[4.15, GAMMA * 1.35, 0]}>
-      <sphereGeometry args={[1, 64, 64]} />
-      <shaderMaterial ref={mat} vertexShader={VERT} fragmentShader={FRAG} uniforms={uniforms} />
-    </mesh>
-  );
-}
+const MOON_X = 5.4;
 
 function Earth() {
   return (
-    <mesh>
-      <sphereGeometry args={[1.35, 48, 48]} />
-      <meshStandardMaterial color="#2c5f8a" roughness={0.72} metalness={0.05} emissive="#071018" />
+    <mesh castShadow receiveShadow>
+      <sphereGeometry args={[1.65, 48, 48]} />
+      <meshStandardMaterial color="#2a5a82" roughness={0.82} metalness={0.04} emissive="#061018" emissiveIntensity={0.4} />
     </mesh>
   );
 }
 
-function Shadows() {
+function ShadowVolume() {
   return (
-    <group rotation={[0, 0, Math.PI / 2]} position={[2.4, 0, 0]}>
+    <group rotation={[0, 0, Math.PI / 2]} position={[3.2, 0, 0]}>
       <mesh>
-        <cylinderGeometry args={[2.85, 3.2, 7.2, 48, 1, true]} />
-        <meshBasicMaterial color="#c4a06a" transparent opacity={0.07} side={THREE.DoubleSide} depthWrite={false} />
+        <cylinderGeometry args={[2.55, 2.9, 8.4, 48, 1, true]} />
+        <meshBasicMaterial color="#d4b07a" transparent opacity={0.09} side={THREE.DoubleSide} depthWrite={false} />
       </mesh>
       <mesh>
-        <cylinderGeometry args={[1.45, 1.62, 7.2, 48, 1, true]} />
-        <meshBasicMaterial color="#6b1c0c" transparent opacity={0.16} side={THREE.DoubleSide} depthWrite={false} />
+        <cylinderGeometry args={[1.58, 1.72, 8.4, 48, 1, true]} />
+        <meshBasicMaterial color="#6a1408" transparent opacity={0.28} side={THREE.DoubleSide} depthWrite={false} />
       </mesh>
     </group>
   );
 }
 
-function Scene({ time, live, reduced }: Props) {
+function Moon({ time }: Props) {
+  const mesh = useRef<THREE.Mesh>(null);
+  const mat = useRef<THREE.MeshStandardMaterial>(null);
+
+  useFrame((_, dt) => {
+    const axis = shadowAxis(time);
+    const mag = umbralMagnitudeAt(time);
+    const pen = penumbraIntensity(time);
+    if (mesh.current) {
+      mesh.current.position.set(MOON_X, GAMMA * 1.55, axis * 2.6);
+      mesh.current.rotation.y += dt * 0.08;
+    }
+    if (mat.current) {
+      mat.current.emissiveIntensity = 0.08 + mag * 0.55;
+      mat.current.color.setRGB(0.94 - pen * 0.12, 0.9 - mag * 0.45, 0.8 - mag * 0.55);
+    }
+  });
+
+  return (
+    <mesh ref={mesh} castShadow receiveShadow position={[MOON_X, GAMMA * 1.55, 0]}>
+      <sphereGeometry args={[0.52, 64, 64]} />
+      <meshStandardMaterial ref={mat} color="#f0e6cc" roughness={0.95} metalness={0} emissive="#7a2a10" emissiveIntensity={0.1} />
+    </mesh>
+  );
+}
+
+function Scene({ time }: Props) {
   return (
     <>
-      <color attach="background" args={["#05060a"]} />
-      <Stars radius={80} depth={40} count={reduced ? 400 : 1400} factor={3} saturation={0} fade speed={reduced ? 0.1 : 0.4} />
-      <ambientLight intensity={0.07} />
-      <directionalLight position={[-12, 2, 1]} intensity={2.4} color="#fff4d6" />
-      <pointLight position={[-18, 0, 0]} intensity={8} distance={40} color="#ffd9a0" />
+      <color attach="background" args={["#04050a"]} />
+      <Stars radius={90} depth={50} count={1200} factor={2.8} saturation={0} fade speed={0.25} />
+      <ambientLight intensity={0.07} color="#8a6a55" />
+      <hemisphereLight args={["#1a2233", "#120804", 0.18]} />
+      <directionalLight
+        castShadow
+        position={[-28, 0.15, 0]}
+        intensity={5.2}
+        color="#fff3d0"
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
+        shadow-camera-near={10}
+        shadow-camera-far={50}
+        shadow-camera-left={-4}
+        shadow-camera-right={4}
+        shadow-camera-top={4}
+        shadow-camera-bottom={-4}
+        shadow-bias={-0.0004}
+      />
       <Earth />
-      <Shadows />
-      <Moon time={time} live={live} reduced={reduced} />
-      <OrbitControls enablePan={false} minDistance={7} maxDistance={18} maxPolarAngle={Math.PI * 0.62} minPolarAngle={Math.PI * 0.28} />
+      <ShadowVolume />
+      <Moon time={time} />
     </>
   );
 }
 
-export default function EclipseCanvas({ time, live, reduced }: Props) {
+export default function EclipseCanvas({ time }: Props) {
   return (
-    <Canvas camera={{ position: [8.4, 3.2, 9.2], fov: 42 }} dpr={[1, 1.6]} gl={{ antialias: true, alpha: false }} frameloop={reduced && !live ? "demand" : "always"}>
-      <Scene time={time} live={live} reduced={reduced} />
+    <Canvas
+      shadows
+      dpr={[1, 1.5]}
+      camera={{ position: [7.8, 2.4, 6.2], fov: 36, near: 0.1, far: 200 }}
+      gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
+      style={{ width: "100%", height: "100%", touchAction: "none" }}
+      onCreated={({ camera, gl }) => {
+        camera.lookAt(3.4, 0.4, 0);
+        gl.setClearColor("#04050a");
+      }}
+    >
+      <Scene time={time} />
     </Canvas>
   );
 }
