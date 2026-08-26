@@ -1,0 +1,87 @@
+:root {
+  --bg: #04050a;
+  --ink: #ece7db;
+  --muted: #9a9488;
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  touch-action: none;
+  overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body {
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+.app {
+  position: relative;
+  height: 100dvh;
+  width: 100%;
+  overflow: hidden;
+}
+
+.canvas-wrap {
+  position: absolute;
+  inset: 0;
+  touch-action: none;
+}
+
+.canvas-wrap canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.chrome {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  padding: calc(12px + env(safe-area-inset-top)) 16px 0;
+  pointer-events: none;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.time {
+  margin: 0;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+.stage {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(28px + env(safe-area-inset-bottom));
+  text-align: center;
+  margin: 0;
+  z-index: 2;
+  pointer-events: none;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
